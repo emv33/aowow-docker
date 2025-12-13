@@ -1,0 +1,33 @@
+<?php
+
+if (!defined('AOWOW_REVISION'))
+    die('illegal access');
+
+$AoWoWconf['aowow'] = array (
+  'host' => '%%AOWOW_DB_HOST%%',
+  'user' => '%%AOWOW_DB_USER%%',
+  'pass' => '%%AOWOW_DB_PASSWORD%%',
+  'db' => '%%AOWOW_DB_DATABASE%%',
+  'prefix' => 'aowow_',
+);
+$AoWoWconf['world'] = array (
+  'host' => '%%WORLD_DB_HOST%%',
+  'user' => '%%WORLD_DB_USER%%',
+  'pass' => '%%WORLD_DB_PASSWORD%%',
+  'db' => '%%WORLD_DB_DATABASE%%',
+  'prefix' => '',
+);
+$AoWoWconf['auth'] = array (
+  'host' => '%%AUTH_DB_HOST%%',
+  'user' => '%%AUTH_DB_USER%%',
+  'pass' => '%%AUTH_DB_PASSWORD%%',
+  'db' => '%%AUTH_DB_DATABASE%%',
+  'prefix' => '',
+);
+$AoWoWconf['characters']['1'] = array (
+  'host' => '%%CHARACTERS_DB_HOST%%',
+  'user' => '%%CHARACTERS_DB_USER%%',
+  'pass' => '%%CHARACTERS_DB_PASSWORD%%',
+  'db' => '%%CHARACTERS_DB_DATABASE%%',
+  'prefix' => '',
+);

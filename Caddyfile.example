@@ -1,0 +1,13 @@
+# Change 'localhost' to your domain name (e.g., aowow.example.com) for production
+localhost {
+    # Compress responses for speed
+    encode gzip
+
+    # Reverse proxy to the AoWoW container
+    # 'aowow_web' is the container name defined in the main docker-compose.yml
+    # Port 80 is the internal port of the apache container
+    reverse_proxy aowow_web:80 {
+        # Optional: header manipulation if needed
+        header_up X-Real-IP {remote_host}
+    }
+}

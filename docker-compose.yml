@@ -1,0 +1,93 @@
+services:
+  db:
+    image: mariadb:10.11
+    container_name: aowow_db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - aowow_net
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        AOWOW_GIT_URL: ${AOWOW_GIT_URL:-https://github.com/Sarjuuk/aowow.git}
+        MPQEXTRACTOR_GIT_URL: ${MPQEXTRACTOR_GIT_URL:-https://github.com/Sarjuuk/MPQExtractor.git}
+    container_name: aowow_web
+    depends_on:
+      db:
+        condition: service_healthy
+    # Ports are commented out to force traffic through Caddy via the private network.
+    # If you need direct access for debugging, uncomment the next two lines:
+    # ports:
+    #   - "${WEB_PORT:-8080}:80"
+    volumes:
+      # user-provided wow client files (read-only)
+      - ${WOW_CLIENT_PATH}:/wow-client:ro
+      # user-provided tdb sql file (read-only)
+      - ${TDB_SQL_PATH}:/tdb/TDB.sql:ro
+      # persistent application data
+      - aowow_cache:/var/www/html/cache:rw
+      - aowow_config:/var/www/html/config:rw
+      - aowow_static:/var/www/html/static:rw
+      - aowow_datasets:/var/www/html/datasets:rw
+      - mpq_data:/var/www/html/setup/mpqdata:rw
+    networks:
+      - aowow_net
+    environment:
+      # aowow database
+      - AOWOW_DB_HOST=${AOWOW_DB_HOST:-db}
+      - AOWOW_DB_DATABASE=${AOWOW_DB_DATABASE:-aowow}
+      - AOWOW_DB_USER=${AOWOW_DB_USER:-aowow_user}
+      - AOWOW_DB_PASSWORD=${AOWOW_DB_PASSWORD:-aowow_password}
+      # world database
+      - WORLD_DB_HOST=${WORLD_DB_HOST:-db}
+      - WORLD_DB_DATABASE=${WORLD_DB_DATABASE:-world}
+      - WORLD_DB_USER=${WORLD_DB_USER:-world_user}
+      - WORLD_DB_PASSWORD=${WORLD_DB_PASSWORD:-world_password}
+      # auth database
+      - AUTH_DB_HOST=${AUTH_DB_HOST:-db}
+      - AUTH_DB_DATABASE=${AUTH_DB_DATABASE:-auth}
+      - AUTH_DB_USER=${AUTH_DB_USER:-auth_user}
+      - AUTH_DB_PASSWORD=${AUTH_DB_PASSWORD:-auth_password}
+      # characters database
+      - CHARACTERS_DB_HOST=${CHARACTERS_DB_HOST:-db}
+      - CHARACTERS_DB_DATABASE=${CHARACTERS_DB_DATABASE:-characters}
+      - CHARACTERS_DB_USER=${CHARACTERS_DB_USER:-characters_user}
+      - CHARACTERS_DB_PASSWORD=${CHARACTERS_DB_PASSWORD:-characters_password}
+      # mysql root (for database creation)
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-rootpassword}
+      # aowow configuration
+      - SITE_HOST=${SITE_HOST:-localhost:8080}
+      - STATIC_HOST=${STATIC_HOST:-localhost:8080/static}
+      - AOWOW_ACC_ALLOW_REGISTER=${AOWOW_ACC_ALLOW_REGISTER:-1}
+      - AOWOW_FORCE_SSL=${AOWOW_FORCE_SSL:-0}
+      # aowow limits
+      - AOWOW_SQL_LIMIT_DEFAULT=${AOWOW_SQL_LIMIT_DEFAULT:-300}
+      - AOWOW_SQL_LIMIT_SEARCH=${AOWOW_SQL_LIMIT_SEARCH:-300}
+      - AOWOW_MEMORY_LIMIT=${AOWOW_MEMORY_LIMIT:-1500M}
+      # threads
+      - AOWOW_CONVERSION_THREADS=${AOWOW_CONVERSION_THREADS:-0}
+      # other
+      - WOW_LOCALE=${WOW_LOCALE:-enUS}
+
+volumes:
+  db_data:
+  mpq_data:
+  aowow_cache:
+  aowow_config:
+  aowow_static:
+  aowow_datasets:
+
+networks:
+  aowow_net:
+    name: aowow_private_net
+    driver: bridge
