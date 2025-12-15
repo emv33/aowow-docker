@@ -2,6 +2,8 @@ services:
   db:
     image: mariadb:10.11
     container_name: aowow_db
+    # Sets max connections. Defaults to 151 (MariaDB default) if MYSQL_MAX_CONNECTIONS is not set.
+    command: --max-connections=${MYSQL_MAX_CONNECTIONS:-151}
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
     volumes:
