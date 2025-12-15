@@ -1,6 +1,6 @@
-FROM php:8.2-apache
+FROM php:8.2-fpm
 
-# Install system dependencies
+# Install system dependencies and Apache
 RUN apt-get update && apt-get install -y \
     git \
     cmake \
@@ -21,6 +21,7 @@ RUN apt-get update && apt-get install -y \
     mariadb-client \
     ca-certificates \
     parallel \
+    apache2 \
     && rm -rf /var/lib/apt/lists/*
 
 # Build MPQExtractor from source (includes StormLib as submodule)
@@ -50,8 +51,10 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     intl \
     gmp
 
-# Enable Apache mod_rewrite
-RUN a2enmod rewrite
+# Configure Apache
+# Enable modules and copy custom virtual host config
+RUN a2enmod rewrite proxy proxy_fcgi
+COPY 000-default.conf /etc/apache2/sites-available/000-default.conf
 
 # Clone AoWoW repository
 ARG AOWOW_GIT_URL=https://github.com/Sarjuuk/aowow.git
@@ -91,4 +94,6 @@ RUN mkdir -p ~/.parallel && touch ~/.parallel/will-cite
 EXPOSE 80
 
 ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["apache2-foreground"]
+
+# Start PHP-FPM in background (-D) and Apache in foreground
+CMD ["sh", "-c", "php-fpm -D && apachectl -D FOREGROUND"]
