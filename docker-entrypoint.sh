@@ -32,6 +32,11 @@ sort_mpqs() {
     sed 's/\.MPQ$/#MPQ/' | LC_COLLATE=C sort | sed 's/#MPQ$/.MPQ/'
 }
 
+# Purge Cache
+print_info "Purging aowow cache..."
+rm -rf /var/www/html/cache/*
+print_success "Cache purged"
+
 # Check if WoW client exists
 echo ""
 print_info "Checking for World of Warcraft client files..."
@@ -237,26 +242,66 @@ else
     print_success "World database already populated"
 fi
 
-# Extract MPQ files if not already done
-echo ""
-print_info "Checking MPQ extraction status..."
-
-ALL_LOCALES_EXTRACTED=true
-for locale in "${VALID_LOCALES[@]}"; do
-    if [ ! -d "/var/www/html/setup/mpqdata/$locale" ] || [ -z "$(ls -A /var/www/html/setup/mpqdata/$locale 2>/dev/null)" ]; then
-        ALL_LOCALES_EXTRACTED=false
-        break
-    fi
-done
-
 # Determine number of threads
 THREADS=${AOWOW_CONVERSION_THREADS:-0}
 if [ "$THREADS" -eq 0 ]; then
     THREADS=$(nproc)
 fi
 
-if [ "$ALL_LOCALES_EXTRACTED" = false ]; then
-    print_info "MPQ files need extraction. Starting optimized process..."
+# ==========================================
+# Evaluate State for Extraction/Conversion
+# ==========================================
+echo ""
+print_info "Evaluating current state..."
+
+# Check Static Assets
+STATIC_INTERFACE_OK=false
+if [ -d "/var/www/html/static/images/wow/Interface" ] && [ -n "$(ls -A /var/www/html/static/images/wow/Interface 2>/dev/null)" ]; then
+    STATIC_INTERFACE_OK=true
+fi
+
+STATIC_SOUNDS_OK=false
+if [ -d "/var/www/html/static/wowsounds" ] && [ -n "$(ls -A /var/www/html/static/wowsounds 2>/dev/null)" ]; then
+    STATIC_SOUNDS_OK=true
+fi
+
+# Check MPQ Data
+MPQ_DATA_OK=true
+for locale in "${VALID_LOCALES[@]}"; do
+    if [ ! -d "/var/www/html/setup/mpqdata/$locale" ]; then
+        MPQ_DATA_OK=false
+        break
+    fi
+done
+
+# Determine if extraction is needed
+# Rule: ((StaticInterface Missing OR StaticSounds Missing) AND MPQ Data Missing Locales)
+PERFORM_EXTRACTION=false
+if [[ "$STATIC_INTERFACE_OK" == "false" || "$STATIC_SOUNDS_OK" == "false" ]]; then
+    if [[ "$MPQ_DATA_OK" == "false" ]]; then
+        PERFORM_EXTRACTION=true
+    fi
+fi
+
+# Determine if conversion is needed
+# Rule: StaticSounds Missing
+PERFORM_CONVERSION=false
+if [[ "$STATIC_SOUNDS_OK" == "false" ]]; then
+    PERFORM_CONVERSION=true
+fi
+
+print_info "State Assessment:"
+print_info "  - Static Interface Exists: $STATIC_INTERFACE_OK"
+print_info "  - Static Sounds Exists:    $STATIC_SOUNDS_OK"
+print_info "  - MPQ Data Ready:          $MPQ_DATA_OK"
+print_info "  -> Perform Extraction:     $PERFORM_EXTRACTION"
+print_info "  -> Perform Conversion:     $PERFORM_CONVERSION"
+
+# ==========================================
+# Extraction Process
+# ==========================================
+if [ "$PERFORM_EXTRACTION" = true ]; then
+    print_info "Starting MPQ extraction process..."
 
     # ---------------------------------------------------------
     # 1. Extract Base MPQs and First Locale Sound
@@ -265,7 +310,19 @@ if [ "$ALL_LOCALES_EXTRACTED" = false ]; then
     mkdir -p "$BASE_DIR"
 
     # 1a. Generic/Base MPQs
-    BASE_MPQS=$(find "/wow-client/Data" -maxdepth 1 -name "*.MPQ" | sort_mpqs)
+    DATA_DIR="/wow-client/Data"
+    BASE_MPQS=""
+    BASE_MPQS+="$(find "$DATA_DIR" -maxdepth 1 -name "common*.MPQ" | sort_mpqs)"$'\n'
+    BASE_MPQS+="$(find "$DATA_DIR" -maxdepth 1 -name "expansion*.MPQ" | sort_mpqs)"$'\n'
+    BASE_MPQS+="$(find "$DATA_DIR" -maxdepth 1 -name "lichking*.MPQ" | sort_mpqs)"$'\n'
+    BASE_MPQS+="$(find "$DATA_DIR" -maxdepth 1 -name "patch*.MPQ" | sort_mpqs)"$'\n'
+    # Add others
+    BASE_MPQS+="$(find "$DATA_DIR" -maxdepth 1 -name "*.MPQ" \
+        ! -name "common*.MPQ" \
+        ! -name "expansion*.MPQ" \
+        ! -name "lichking*.MPQ" \
+        ! -name "patch*.MPQ" | sort_mpqs)"
+
     BASE_MPQS=$(echo "$BASE_MPQS" | sed '/^$/d')
 
     if [ -z "$BASE_MPQS" ]; then
@@ -283,22 +340,38 @@ if [ "$ALL_LOCALES_EXTRACTED" = false ]; then
         print_info "  Processing base MPQ: $MPQ_NAME"
         for path in "${COMMON_PATHS[@]}"; do
             print_info "    Extracting: $path"
-            # Using wildcard for directory extraction
             MPQExtractor -e "$path/*" -o "$BASE_DIR" -f "$mpq" || true
         done
     done
 
     # 1b. First Locale Sound (Treating as Base)
     FIRST_LOCALE="${VALID_LOCALES[0]}"
+    LOC_DIR="/wow-client/Data/$FIRST_LOCALE"
     print_info "Phase 1b: Extracting sound from first locale ($FIRST_LOCALE) to base..."
 
-    FIRST_LOCALE_MPQS=$(find "/wow-client/Data/$FIRST_LOCALE" -name "*.MPQ" | sort_mpqs)
+    FIRST_LOCALE_MPQS=""
+    FIRST_LOCALE_MPQS+="$(find "$LOC_DIR" -maxdepth 1 -name "locale-$FIRST_LOCALE*.MPQ" | sort_mpqs)"$'\n'
+    FIRST_LOCALE_MPQS+="$(find "$LOC_DIR" -maxdepth 1 -name "speech-$FIRST_LOCALE*.MPQ" | sort_mpqs)"$'\n'
+    FIRST_LOCALE_MPQS+="$(find "$LOC_DIR" -maxdepth 1 -name "expansion-locale-$FIRST_LOCALE*.MPQ" | sort_mpqs)"$'\n'
+    FIRST_LOCALE_MPQS+="$(find "$LOC_DIR" -maxdepth 1 -name "expansion-speech-$FIRST_LOCALE*.MPQ" | sort_mpqs)"$'\n'
+    FIRST_LOCALE_MPQS+="$(find "$LOC_DIR" -maxdepth 1 -name "lichking-locale-$FIRST_LOCALE*.MPQ" | sort_mpqs)"$'\n'
+    FIRST_LOCALE_MPQS+="$(find "$LOC_DIR" -maxdepth 1 -name "lichking-speech-$FIRST_LOCALE*.MPQ" | sort_mpqs)"$'\n'
+    FIRST_LOCALE_MPQS+="$(find "$LOC_DIR" -maxdepth 1 -name "patch-$FIRST_LOCALE*.MPQ" | sort_mpqs)"$'\n'
+    # Others
+    FIRST_LOCALE_MPQS+="$(find "$LOC_DIR" -maxdepth 1 -name "*.MPQ" \
+        ! -name "locale-$FIRST_LOCALE*.MPQ" \
+        ! -name "speech-$FIRST_LOCALE*.MPQ" \
+        ! -name "expansion-locale-$FIRST_LOCALE*.MPQ" \
+        ! -name "expansion-speech-$FIRST_LOCALE*.MPQ" \
+        ! -name "lichking-locale-$FIRST_LOCALE*.MPQ" \
+        ! -name "lichking-speech-$FIRST_LOCALE*.MPQ" \
+        ! -name "patch-$FIRST_LOCALE*.MPQ" | sort_mpqs)"
+
     FIRST_LOCALE_MPQS=$(echo "$FIRST_LOCALE_MPQS" | sed '/^$/d')
 
     echo "$FIRST_LOCALE_MPQS" | while read -r mpq; do
         MPQ_NAME=$(basename "$mpq")
         print_info "  Processing first locale MPQ for sound: $MPQ_NAME"
-        # Extract ONLY Sound
         print_info "    Extracting: Sound"
         MPQExtractor -e "Sound/*" -o "$BASE_DIR" -f "$mpq" || true
     done
@@ -307,39 +380,41 @@ if [ "$ALL_LOCALES_EXTRACTED" = false ]; then
 
     # ---------------------------------------------------------
     # 2. Process Base Audio (In-Place)
+    # Only needed if we just extracted the base folder
     # ---------------------------------------------------------
-    print_info "Phase 2: Processing base audio files..."
+    if [ "$PERFORM_CONVERSION" = true ]; then
+        print_info "Phase 2: Processing base audio files..."
 
-    if [ -d "$BASE_DIR/Sound" ]; then
-        pushd "$BASE_DIR/Sound" >/dev/null
+        if [ -d "$BASE_DIR/Sound" ]; then
+            pushd "$BASE_DIR/Sound" >/dev/null
 
-        # Convert WAV -> OGG
-        WAV_COUNT=$(find . -name "*.wav" | wc -l)
-        if [ "$WAV_COUNT" -gt 0 ]; then
-            print_info "  Converting $WAV_COUNT base WAV files..."
-            find . -name "*.wav" -print0 | \
-                parallel -0 -j "$THREADS" \
-                "ffmpeg -hide_banner -loglevel error -y -i {} -acodec libvorbis -q:a 4 -f ogg {}_ >/dev/null && rm {} && echo \"[{#}/$WAV_COUNT] Converted base: {}_\"" || true
+            # Convert WAV -> OGG
+            WAV_COUNT=$(find . -name "*.wav" | wc -l)
+            if [ "$WAV_COUNT" -gt 0 ]; then
+                print_info "  Converting $WAV_COUNT base WAV files..."
+                find . -name "*.wav" -print0 | \
+                    parallel -0 -j "$THREADS" \
+                    "ffmpeg -hide_banner -loglevel error -y -i {} -acodec libvorbis -q:a 4 -f ogg {}_ >/dev/null && rm {} && echo \"[{#}/$WAV_COUNT] Converted base: {}_\"" || true
+            fi
+
+            # Rebuild MP3 -> MP3
+            MP3_COUNT=$(find . -name "*.mp3" | wc -l)
+            if [ "$MP3_COUNT" -gt 0 ]; then
+                print_info "  Rebuilding $MP3_COUNT base MP3 files..."
+                find . -name "*.mp3" -print0 | \
+                    parallel -0 -j "$THREADS" \
+                    "ffmpeg -hide_banner -loglevel error -y -i {} -c copy -f mp3 {}_ >/dev/null && rm {} && echo \"[{#}/$MP3_COUNT] Copied base: {}_\"" || true
+            fi
+
+            popd >/dev/null
         fi
-
-        # Rebuild MP3 -> MP3
-        MP3_COUNT=$(find . -name "*.mp3" | wc -l)
-        if [ "$MP3_COUNT" -gt 0 ]; then
-            print_info "  Rebuilding $MP3_COUNT base MP3 files..."
-            find . -name "*.mp3" -print0 | \
-                parallel -0 -j "$THREADS" \
-                "ffmpeg -hide_banner -loglevel error -y -i {} -c copy -f mp3 {}_ >/dev/null && rm {} && echo \"[{#}/$MP3_COUNT] Copied base: {}_\"" || true
-        fi
-
-        popd >/dev/null
+        print_success "Base audio processing complete."
     fi
-    print_success "Base audio processing complete."
 
     # ---------------------------------------------------------
     # 3-4. Locale Processing Loop
     # ---------------------------------------------------------
 
-    # Sound is excluded here; base audio files are used via hardlinks.
     SPECIFIC_PATHS=(
         "DBFilesClient"
         "Interface"
@@ -351,7 +426,6 @@ if [ "$ALL_LOCALES_EXTRACTED" = false ]; then
         mkdir -p "$LOCALE_DIR"
 
         # 3. Recreate Tree (Hardlinks)
-        # cp -al recursively creates hardlinks of the directory structure
         print_info "  Phase 3: Linking base files to locale folder..."
         cp -al "$BASE_DIR/." "$LOCALE_DIR/"
 
@@ -388,7 +462,6 @@ if [ "$ALL_LOCALES_EXTRACTED" = false ]; then
             MPQ_NAME=$(basename "$mpq")
             print_info "    Processing locale MPQ: $MPQ_NAME"
             for path in "${SPECIFIC_PATHS[@]}"; do
-                # Determine wildcard usage
                 if [[ "$path" == *".lua" ]]; then
                     SEARCH_PATTERN="$path"
                 else
@@ -411,9 +484,6 @@ if [ "$ALL_LOCALES_EXTRACTED" = false ]; then
         # Cleanup temp dir
         rm -rf "$TEMP_DIR"
 
-        # 5. Process Locale-Specific Audio (SKIPPED)
-        # Sound is not extracted in step 4; all audio comes from the hardlinked base folder.
-
         print_success "Locale $locale completed."
     done
 
@@ -423,7 +493,44 @@ if [ "$ALL_LOCALES_EXTRACTED" = false ]; then
 
     print_success "All MPQ operations complete"
 else
-    print_success "MPQ files already extracted for all locales"
+    print_success "MPQ files already extracted for all locales (or skipped based on static assets)"
+fi
+
+# ==========================================
+# Conversion Process (Remaining Locale Audio)
+# ==========================================
+if [ "$PERFORM_CONVERSION" = true ]; then
+    print_info "Checking audio file conversion status..."
+
+    for locale in "${VALID_LOCALES[@]}"; do
+        SOUND_DIR="/var/www/html/setup/mpqdata/$locale/Sound"
+
+        # 5. Process Locale-Specific Audio
+        if [ -d "$SOUND_DIR" ]; then
+            pushd "$SOUND_DIR" >/dev/null
+
+            # WAV -> OGG
+            WAV_COUNT=$(find . -name "*.wav" | wc -l)
+            if [ "$WAV_COUNT" -gt 0 ]; then
+                print_info "  Converting $WAV_COUNT remaining WAV files for locale $locale..."
+                find . -name "*.wav" -print0 | \
+                    parallel -0 -j "$THREADS" \
+                    "rm -f {}_ && ffmpeg -hide_banner -loglevel error -y -i {} -acodec libvorbis -q:a 4 -f ogg {}_ >/dev/null && rm {} && echo \"[{#}/$WAV_COUNT] Converted locale: {}_\"" || true
+            fi
+
+            # MP3 -> MP3
+            MP3_COUNT=$(find . -name "*.mp3" | wc -l)
+            if [ "$MP3_COUNT" -gt 0 ]; then
+                print_info "  Rebuilding $MP3_COUNT remaining MP3 files for locale $locale..."
+                find . -name "*.mp3" -print0 | \
+                    parallel -0 -j "$THREADS" \
+                    "rm -f {}_ && ffmpeg -hide_banner -loglevel error -y -i {} -c copy -f mp3 {}_ >/dev/null && rm {} && echo \"[{#}/$MP3_COUNT] Copied locale: {}_\"" || true
+            fi
+
+            popd >/dev/null
+        fi
+    done
+    print_success "Audio conversion processes complete"
 fi
 
 # Set proper permissions

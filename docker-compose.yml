@@ -7,7 +7,7 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
     volumes:
-      - db_data:/var/lib/mysql
+      - aowow_db_data:/var/lib/mysql
     networks:
       - aowow_net
     healthcheck:
@@ -37,11 +37,11 @@ services:
       # user-provided tdb sql file (read-only)
       - ${TDB_SQL_PATH}:/tdb/TDB.sql:ro
       # persistent application data
-      - aowow_cache:/var/www/html/cache:rw
-      - aowow_config:/var/www/html/config:rw
-      - aowow_static:/var/www/html/static:rw
-      - aowow_datasets:/var/www/html/datasets:rw
-      - mpq_data:/var/www/html/setup/mpqdata:rw
+      - aowow_web_cache:/var/www/html/cache:rw
+      - aowow_web_config:/var/www/html/config:rw
+      - aowow_web_static:/var/www/html/static:rw
+      - aowow_web_datasets:/var/www/html/datasets:rw
+      - aowow_web_mpqdata:/var/www/html/setup/mpqdata:rw
     networks:
       - aowow_net
     environment:
@@ -82,12 +82,12 @@ services:
       - WOW_LOCALE=${WOW_LOCALE:-enUS}
 
 volumes:
-  db_data:
-  mpq_data:
-  aowow_cache:
-  aowow_config:
-  aowow_static:
-  aowow_datasets:
+  aowow_db_data:
+  aowow_web_cache:
+  aowow_web_config:
+  aowow_web_static:
+  aowow_web_datasets:
+  aowow_web_mpqdata:
 
 networks:
   aowow_net:
