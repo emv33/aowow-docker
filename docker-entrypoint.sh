@@ -32,6 +32,28 @@ sort_mpqs() {
     sed 's/\.MPQ$/#MPQ/' | LC_COLLATE=C sort | sed 's/#MPQ$/.MPQ/'
 }
 
+# Configure PHP-FPM
+print_info "Configuring PHP-FPM..."
+FPM_CONF="/usr/local/etc/php-fpm.d/www.conf"
+
+# Set defaults if variables are not provided
+: ${FPM_PM:=dynamic}
+: ${FPM_PM_MAX_CHILDREN:=5}
+: ${FPM_PM_START_SERVERS:=2}
+: ${FPM_PM_MIN_SPARE_SERVERS:=1}
+: ${FPM_PM_MAX_SPARE_SERVERS:=3}
+: ${FPM_PM_MAX_REQUESTS:=0}
+: ${FPM_REQUEST_TERMINATE_TIMEOUT:=0}
+
+sed -i "s/^;?pm = .*/pm = $FPM_PM/" "$FPM_CONF"
+sed -i "s/^;?pm.max_children = .*/pm.max_children = $FPM_PM_MAX_CHILDREN/" "$FPM_CONF"
+sed -i "s/^;?pm.start_servers = .*/pm.start_servers = $FPM_PM_START_SERVERS/" "$FPM_CONF"
+sed -i "s/^;?pm.min_spare_servers = .*/pm.min_spare_servers = $FPM_PM_MIN_SPARE_SERVERS/" "$FPM_CONF"
+sed -i "s/^;?pm.max_spare_servers = .*/pm.max_spare_servers = $FPM_PM_MAX_SPARE_SERVERS/" "$FPM_CONF"
+sed -i "s/^;?pm.max_requests = .*/pm.max_requests = $FPM_PM_MAX_REQUESTS/" "$FPM_CONF"
+sed -i "s/^;?request_terminate_timeout = .*/request_terminate_timeout = $FPM_REQUEST_TERMINATE_TIMEOUT/" "$FPM_CONF"
+print_success "PHP-FPM configured"
+
 # Purge Cache
 print_info "Purging aowow cache..."
 rm -rf /var/www/html/cache/*
