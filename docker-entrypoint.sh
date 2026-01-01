@@ -64,8 +64,7 @@ echo ""
 print_info "Checking for World of Warcraft client files..."
 if [ ! -d "/wow-client" ] || [ -z "$(ls -A /wow-client)" ]; then
     print_error "World of Warcraft client directory not found or empty!"
-    print_error "Please mount your WoW client directory to /wow-client"
-    print_error "Example: -v /path/to/wow:/wow-client:ro"
+    print_error "Please configure the WOW_CLIENT_PATH variable in your .env file to point to your WoW installation."
     exit 1
 fi
 
