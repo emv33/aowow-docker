@@ -129,7 +129,7 @@ echo ""
 print_info "Checking for TrinityCore Database (TDB) SQL file..."
 if [ ! -f "/tdb/TDB.sql" ]; then
     print_error "TDB SQL file not found at /tdb/TDB.sql!"
-    print_error "Please mount your TDB_full_world_335.21101_2021_10_17.sql file"
+    print_error "Please mount your TDB_full_world_335.25101_2025_10_21.sql file"
     print_error "Example: -v /path/to/TDB.sql:/tdb/TDB.sql:ro"
     exit 1
 fi
@@ -260,6 +260,14 @@ if [ "$WORLD_TABLES" -lt 5 ]; then
     print_info "This will take several minutes..."
     mysql -h"$WORLD_DB_HOST" -uroot -p"$MYSQL_ROOT_PASSWORD" --skip-ssl "$WORLD_DB_DATABASE" < /tdb/TDB.sql
     print_success "TDB imported successfully"
+
+    print_info "Applying required database alterations..."
+    mysql -h"$WORLD_DB_HOST" -uroot -p"$MYSQL_ROOT_PASSWORD" --skip-ssl "$WORLD_DB_DATABASE" <<EOF
+ALTER TABLE \`conditions\` DROP PRIMARY KEY;
+ALTER TABLE \`conditions\` ADD \`ConditionStringValue1\` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' AFTER \`ConditionValue3\`;
+ALTER TABLE \`conditions\` ADD PRIMARY KEY (\`SourceTypeOrReferenceId\`,\`SourceGroup\`,\`SourceEntry\`,\`SourceId\`,\`ElseGroup\`,\`ConditionTypeOrReference\`,\`ConditionTarget\`,\`ConditionValue1\`,\`ConditionValue2\`,\`ConditionValue3\`,\`ConditionStringValue1\`);
+EOF
+    print_success "Database alterations applied"
 else
     print_success "World database already populated"
 fi
