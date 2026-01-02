@@ -86,6 +86,11 @@ services:
       - FPM_REQUEST_TERMINATE_TIMEOUT=${FPM_REQUEST_TERMINATE_TIMEOUT:-0}
       # threads
       - AOWOW_CONVERSION_THREADS=${AOWOW_CONVERSION_THREADS:-0}
+      # tdb patching
+      - TDB_PATCHES=${TDB_PATCHES:-1}
+      - TDB_PATCHES_GIT_URL=${TDB_PATCHES_GIT_URL:-https://github.com/TrinityCore/TrinityCore.git}
+      - TDB_PATCHES_GIT_BRANCH=${TDB_PATCHES_GIT_BRANCH:-3.3.5}
+      - TDB_PATCHES_GIT_PATH=${TDB_PATCHES_GIT_PATH:-sql/updates/world/3.3.5}
       # other
       - WOW_LOCALE=${WOW_LOCALE:-enUS}
 
