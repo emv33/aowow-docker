@@ -189,6 +189,12 @@ if [ "$DB_TABLES" -lt 5 ]; then
     # Import all SQL files in the setup directory
     for sql_file in /var/www/html/setup/sql/*.sql; do
         if [ -f "$sql_file" ]; then
+            # Skip files with "mysql_only" in the name
+            if [[ "$sql_file" == *"mysql_only"* ]]; then
+                print_info "Skipping $(basename $sql_file) (matches 'mysql_only')"
+                continue
+            fi
+
             print_info "Importing $(basename $sql_file)..."
             mysql -h"$AOWOW_DB_HOST" -u"$AOWOW_DB_USER" -p"$AOWOW_DB_PASSWORD" --skip-ssl "$AOWOW_DB_DATABASE" < "$sql_file"
         fi
