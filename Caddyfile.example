@@ -3,6 +3,14 @@ localhost {
     # Compress responses for speed
     encode gzip
 
+    log
+
+    @hidden_files {
+        path_regexp hidden (^|/)\.
+    }
+
+    respond @hidden_files 403
+
     # Reverse proxy to the AoWoW container
     # 'aowow_web' is the container name defined in the main docker-compose.yml
     # Port 80 is the internal port of the apache container
