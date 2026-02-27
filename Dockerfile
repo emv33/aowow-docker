@@ -22,6 +22,7 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     parallel \
     apache2 \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
 
 # Build MPQExtractor from source (includes StormLib as submodule)
@@ -44,12 +45,17 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     mbstring \
     intl \
     gmp \
+    zip \
     && docker-php-ext-enable \
     gd \
     mysqli \
     mbstring \
     intl \
-    gmp
+    gmp \
+    zip
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Configure Apache
 # Enable modules and copy custom virtual host config
@@ -64,6 +70,9 @@ RUN rm -rf html && \
 
 # Set working directory
 WORKDIR /var/www/html
+
+# Install Composer dependencies
+RUN composer install --no-dev
 
 # Copy entrypoint script and config template
 COPY docker-entrypoint.sh /usr/local/bin/
