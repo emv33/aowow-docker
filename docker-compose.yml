@@ -15,6 +15,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
   web:
     build:
@@ -44,6 +45,7 @@ services:
       - aowow_web_mpqdata:/var/www/html/setup/mpqdata:rw
     networks:
       - aowow_net
+    restart: unless-stopped
     environment:
       # aowow database
       - AOWOW_DB_HOST=${AOWOW_DB_HOST:-db}
