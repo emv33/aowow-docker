@@ -27,8 +27,9 @@ RUN apt-get update && apt-get install -y \
 
 # Build MPQExtractor from source (includes StormLib as submodule)
 ARG MPQEXTRACTOR_GIT_URL=https://github.com/Sarjuuk/MPQExtractor.git
+ARG MPQEXTRACTOR_GIT_BRANCH=master
 WORKDIR /tmp
-RUN git clone --recurse-submodules ${MPQEXTRACTOR_GIT_URL} MPQExtractor \
+RUN git clone --recurse-submodules --branch ${MPQEXTRACTOR_GIT_BRANCH} ${MPQEXTRACTOR_GIT_URL} MPQExtractor \
     && cd MPQExtractor \
     && mkdir build && cd build \
     && cmake .. \
@@ -64,9 +65,10 @@ COPY 000-default.conf /etc/apache2/sites-available/000-default.conf
 
 # Clone AoWoW repository
 ARG AOWOW_GIT_URL=https://github.com/Sarjuuk/aowow.git
+ARG AOWOW_GIT_BRANCH=master
 WORKDIR /var/www
 RUN rm -rf html && \
-    git clone ${AOWOW_GIT_URL} html
+    git clone --branch ${AOWOW_GIT_BRANCH} ${AOWOW_GIT_URL} html
 
 # Set working directory
 WORKDIR /var/www/html

@@ -23,7 +23,9 @@ services:
       dockerfile: Dockerfile
       args:
         AOWOW_GIT_URL: ${AOWOW_GIT_URL:-https://github.com/Sarjuuk/aowow.git}
+        AOWOW_GIT_BRANCH: ${AOWOW_GIT_BRANCH:-master}
         MPQEXTRACTOR_GIT_URL: ${MPQEXTRACTOR_GIT_URL:-https://github.com/Sarjuuk/MPQExtractor.git}
+        MPQEXTRACTOR_GIT_BRANCH: ${MPQEXTRACTOR_GIT_BRANCH:-master}
         TDB_PATCHES: ${TDB_PATCHES:-1}
         TDB_PATCHES_GIT_URL: ${TDB_PATCHES_GIT_URL:-https://github.com/TrinityCore/TrinityCore.git}
         TDB_PATCHES_GIT_BRANCH: ${TDB_PATCHES_GIT_BRANCH:-3.3.5}
