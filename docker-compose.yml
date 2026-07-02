@@ -2,8 +2,11 @@ services:
   db:
     image: mariadb:10.11
     container_name: aowow_db
-    # Sets max connections. Defaults to 151 (MariaDB default) if MYSQL_MAX_CONNECTIONS is not set.
-    command: --max-connections=${MYSQL_MAX_CONNECTIONS:-151}
+    # MariaDB tuning. All values have defaults; override via .env (see .env.example for available vars).
+    command: >
+      --max-connections=${MYSQL_MAX_CONNECTIONS:-151}
+      --innodb-ft-cache-size=${MYSQL_INNODB_FT_CACHE_SIZE:-33554432}
+      --innodb-ft-total-cache-size=${MYSQL_INNODB_FT_TOTAL_CACHE_SIZE:-268435456}
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
     volumes:
