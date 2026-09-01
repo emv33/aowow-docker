@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y \
     libicu-dev \
     libgmp-dev \
     libonig-dev \
+    libffi-dev \
     ffmpeg \
     vorbis-tools \
     mariadb-client \
@@ -47,13 +48,15 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     intl \
     gmp \
     zip \
+    ffi \
     && docker-php-ext-enable \
     gd \
     mysqli \
     mbstring \
     intl \
     gmp \
-    zip
+    zip \
+    ffi
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
