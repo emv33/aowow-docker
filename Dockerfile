@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y \
     libmariadb-dev \
     libpng-dev \
     libjpeg-dev \
+    libwebp-dev \
     libfreetype6-dev \
     libzip-dev \
     libicu-dev \
@@ -39,7 +40,7 @@ RUN git clone --recurse-submodules --branch ${MPQEXTRACTOR_GIT_BRANCH} ${MPQEXTR
     && cd /tmp && rm -rf MPQExtractor
 
 # Install PHP extensions
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     && docker-php-ext-install -j$(nproc) \
     gd \
     mysqli \
