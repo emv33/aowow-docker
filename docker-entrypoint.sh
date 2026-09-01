@@ -251,7 +251,8 @@ if [ "$DB_TABLES" -lt 5 ]; then
             fi
 
             print_info "Importing $(basename $sql_file)..."
-            mysql -h"$AOWOW_DB_HOST" -u"$AOWOW_DB_USER" -p"$AOWOW_DB_PASSWORD" --skip-ssl "$AOWOW_DB_DATABASE" < "$sql_file"
+            mysql -h"$AOWOW_DB_HOST" -u"$AOWOW_DB_USER" -p"$AOWOW_DB_PASSWORD" --skip-ssl \
+                --default-character-set=utf8mb4 "$AOWOW_DB_DATABASE" < "$sql_file"
         fi
     done
 
@@ -318,7 +319,8 @@ WORLD_TABLES=$(mysql -h"$WORLD_DB_HOST" -uroot -p"$MYSQL_ROOT_PASSWORD" --skip-s
 if [ "$WORLD_TABLES" -lt 5 ]; then
     print_info "World database appears empty. Importing TDB..."
     print_info "This will take several minutes..."
-    mysql -h"$WORLD_DB_HOST" -uroot -p"$MYSQL_ROOT_PASSWORD" --skip-ssl "$WORLD_DB_DATABASE" < /tdb/TDB.sql
+    mysql -h"$WORLD_DB_HOST" -uroot -p"$MYSQL_ROOT_PASSWORD" --skip-ssl \
+        --default-character-set=utf8mb4 "$WORLD_DB_DATABASE" < /tdb/TDB.sql
     print_success "TDB imported successfully"
 
     # Check if we should apply TDB patches
@@ -334,7 +336,8 @@ if [ "$WORLD_TABLES" -lt 5 ]; then
 
                 echo "$PATCH_FILES" | while read -r patch_file; do
                     print_info "  Applying patch: $(basename "$patch_file")"
-                    mysql -h"$WORLD_DB_HOST" -uroot -p"$MYSQL_ROOT_PASSWORD" --skip-ssl "$WORLD_DB_DATABASE" < "$patch_file"
+                    mysql -h"$WORLD_DB_HOST" -uroot -p"$MYSQL_ROOT_PASSWORD" --skip-ssl \
+                        --default-character-set=utf8mb4 "$WORLD_DB_DATABASE" < "$patch_file"
                 done
 
                 print_success "Patches processed."
