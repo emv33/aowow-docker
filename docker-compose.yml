@@ -99,6 +99,7 @@ services:
       - AOWOW_CONVERSION_THREADS=${AOWOW_CONVERSION_THREADS:-0}
       # tdb patching
       - TDB_PATCHES=${TDB_PATCHES:-1}
+      - TDB_PATCHES_UP_TO=${TDB_PATCHES_UP_TO:-}
       # other
       - WOW_LOCALE=${WOW_LOCALE:-enUS}
 

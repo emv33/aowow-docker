@@ -331,6 +331,21 @@ if [ "$WORLD_TABLES" -lt 5 ]; then
         if [ -d "$PATCH_PATH" ] && [ -n "$(ls -A "$PATCH_PATH" 2>/dev/null)" ]; then
             PATCH_FILES=$(find "$PATCH_PATH" -name "*.sql" | sort)
 
+            # Optionally stop at a given patch (inclusive), i.e. the last update
+            # supported by aowow. Update files are named YYYY_MM_DD_NN_world.sql,
+            # so their lexical order is the order they are applied in.
+            if [ -n "$TDB_PATCHES_UP_TO" ]; then
+                if [ ! -f "$PATCH_PATH/$TDB_PATCHES_UP_TO" ]; then
+                    print_error "TDB_PATCHES_UP_TO is set to '$TDB_PATCHES_UP_TO', but no such patch exists"
+                    print_error "Available patches range from $(basename "$(echo "$PATCH_FILES" | head -1)") to $(basename "$(echo "$PATCH_FILES" | tail -1)")"
+                    exit 1
+                fi
+
+                print_info "Limiting patches to '$TDB_PATCHES_UP_TO' and older"
+                PATCH_FILES=$(echo "$PATCH_FILES" | LC_COLLATE=C awk -v cutoff="$TDB_PATCHES_UP_TO" \
+                    '{ name = $0; sub(/.*\//, "", name); if (name <= cutoff) print }')
+            fi
+
             if [ -n "$PATCH_FILES" ]; then
                 print_info "Found patches. Importing..."
 
